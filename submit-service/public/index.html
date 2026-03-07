@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Submit a Joke</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+      }
+
+      form {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 20px;
+      }
+
+      label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input, textarea, select, button {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      button {
+        margin-top: 20px;
+        cursor: pointer;
+      }
+
+      #message {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Submit a Joke</h1>
+
+    <form id="jokeForm">
+      <label for="setup">Setup</label>
+      <textarea id="setup" name="setup" required></textarea>
+
+      <label for="punchline">Punchline</label>
+      <textarea id="punchline" name="punchline" required></textarea>
+
+      <label for="type">Choose an existing type</label>
+      <select id="type" name="type">
+        <option value="">-- Select a type --</option>
+      </select>
+
+      <label for="newType">Or enter a new type</label>
+      <input type="text" id="newType" name="newType" placeholder="Enter new type" />
+
+      <button type="submit">Submit Joke</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script>
+      const form = document.getElementById("jokeForm");
+      const typeSelect = document.getElementById("type");
+      const messageDiv = document.getElementById("message");
+
+      async function loadTypes() {
+        try {
+          const res = await fetch("/types");
+          const types = await res.json();
+
+          typeSelect.innerHTML = '<option value="">-- Select a type --</option>';
+
+          for (const type of types) {
+            const option = document.createElement("option");
+            option.value = type;
+            option.textContent = type;
+            typeSelect.appendChild(option);
+          }
+        } catch (err) {
+          console.error("Failed to load types:", err);
+        }
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const setup = document.getElementById("setup").value.trim();
+        const punchline = document.getElementById("punchline").value.trim();
+        const type = document.getElementById("type").value;
+        const newType = document.getElementById("newType").value.trim();
+
+        if (!setup || !punchline) {
+          messageDiv.textContent = "Setup and punchline are required.";
+          return;
+        }
+
+        if (!type && !newType) {
+          messageDiv.textContent = "Please select a type or enter a new type.";
+          return;
+        }
+
+        try {
+          const res = await fetch("/submit", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              setup,
+              punchline,
+              type,
+              newType,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            messageDiv.textContent = data.error || "Submission failed.";
+            return;
+          }
+
+          messageDiv.textContent = "Joke submitted successfully!";
+          form.reset();
+          loadTypes();
+        } catch (err) {
+          console.error("Submit error:", err);
+          messageDiv.textContent = "Something went wrong.";
+        }
+      });
+
+      loadTypes();
+    </script>
+  </body>
+</html>
