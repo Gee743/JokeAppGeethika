@@ -1,11 +1,9 @@
-// db.js
 const mysql = require("mysql2/promise");
 
-// Use env vars later (for containers). For now, defaults work locally.
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
+  host: process.env.DB_HOST || "db",
   user: process.env.DB_USER || "root",
-  password: process.env.DB_PASS || "admin123", 
+  password: process.env.DB_PASS || "admin123",
   database: process.env.DB_NAME || "jokesdb",
   waitForConnections: true,
   connectionLimit: 10,
