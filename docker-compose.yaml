@@ -24,6 +24,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
   joke-service:
     build: ./joke-service
@@ -66,6 +68,28 @@ services:
       - "3001:3001"
     volumes:
       - submit_cache:/app/cache
+
+  etl-service:
+    build: ./etl-service
+    container_name: etl-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    environment:
+      PORT: 3002
+      DB_HOST: db
+      DB_USER: root
+      DB_PASS: admin123
+      DB_NAME: jokesdb
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      QUEUE_NAME: submit_jokes
+    ports:
+      - "3002:3002"
+
 volumes:
   db_data:
   submit_cache:
+  rabbitmq_data:
