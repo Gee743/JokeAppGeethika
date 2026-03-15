@@ -76,8 +76,9 @@
 
       async function loadTypes() {
         try {
-          const res = await fetch("/types");
-          const types = await res.json();
+          const response = await fetch("/types");
+          const data = await response.json();
+          const types = data.types;
 
           typeSelect.innerHTML = '<option value="">-- Select a type --</option>';
 

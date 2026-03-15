@@ -4,7 +4,7 @@ services:
     container_name: jokes-db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: admin123
       MYSQL_DATABASE: jokesdb
     ports:
       - "3307:3306"
@@ -12,10 +12,18 @@ services:
       - db_data:/var/lib/mysql
       - ./db-init/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpassword"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-padmin123"]
       interval: 10s
       timeout: 5s
       retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: jokes-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
   joke-service:
     build: ./joke-service
@@ -28,7 +36,7 @@ services:
       PORT: 3000
       DB_HOST: db
       DB_USER: root
-      DB_PASS: rootpasswordt
+      DB_PASS: admin123
       DB_NAME: jokesdb
     ports:
       - "3000:3000"
@@ -40,14 +48,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      joke-service:
+        condition: service_started
     environment:
       PORT: 3001
       DB_HOST: db
       DB_USER: root
-      DB_PASS: rootpassword
+      DB_PASS: admin123
       DB_NAME: jokesdb
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      QUEUE_NAME: submit_jokes
+      JOKE_SERVICE_URL: http://joke-service:3000
+      TYPES_CACHE_FILE: /app/cache/types.json
     ports:
       - "3001:3001"
-
+    volumes:
+      - submit_cache:/app/cache
 volumes:
   db_data:
+  submit_cache:

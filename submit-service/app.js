@@ -2,10 +2,12 @@ const express = require("express");
 const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
-const db = require("./db");
-
+// const db = require("./db");
 const app = express();
 const PORT = process.env.PORT || 3001;
+const JOKE_SERVICE_URL = process.env.JOKE_SERVICE_URL || "http://joke-service:3000";
+const { publishToQueue, connectRabbitMQ } = require("./rabbitmq");
+const { saveTypesToCache, readTypesFromCache } = require("./typeCache");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -73,14 +75,31 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
  */
 app.get("/types", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT name FROM types ORDER BY name");
-    res.json(rows.map((row) => row.name));
-  } catch (err) {
-    console.error("Error fetching types:", err);
-    res.status(500).json({ error: "Failed to fetch types" });
+    const response = await fetch(`${JOKE_SERVICE_URL}/types`);
+
+    if (!response.ok) {
+      throw new Error(`Joke service returned status ${response.status}`);
+    }
+
+    const types = await response.json();
+
+    await saveTypesToCache(types);
+
+    return res.json({
+      source: "joke-service",
+      types,
+    });
+  } catch (error) {
+    console.error("Could not fetch types from joke-service:", error.message);
+
+    const cachedTypes = await readTypesFromCache();
+
+    return res.json({
+      source: "cache",
+      types: cachedTypes,
+    });
   }
 });
-
 /**
  * @swagger
  * /submit:
@@ -114,51 +133,31 @@ app.post("/submit", async (req, res) => {
   try {
     const { setup, punchline, type, newType } = req.body;
 
-    if (!setup || !punchline) {
+    const finalType = (newType && newType.trim()) ? newType.trim() : type?.trim();
+
+    if (!setup || !setup.trim() || !punchline || !punchline.trim() || !finalType) {
       return res.status(400).json({
-        error: "Setup and punchline are required",
+        error: "setup, punchline, and type are required"
       });
     }
 
-    const chosenType = (newType && newType.trim()) || (type && type.trim());
+    const jokePayload = {
+      setup: setup.trim(),
+      punchline: punchline.trim(),
+      type: finalType.trim()
+    };
 
-    if (!chosenType) {
-      return res.status(400).json({
-        error: "Please select a type or enter a new type",
-      });
-    }
+    await publishToQueue(jokePayload);
 
-    const normalizedType = chosenType.toLowerCase().trim();
-
-    let [typeRows] = await db.query(
-      "SELECT id FROM types WHERE LOWER(name) = ?",
-      [normalizedType]
-    );
-
-    let typeId;
-
-    if (typeRows.length > 0) {
-      typeId = typeRows[0].id;
-    } else {
-      const [insertTypeResult] = await db.query(
-        "INSERT INTO types (name) VALUES (?)",
-        [normalizedType]
-      );
-      typeId = insertTypeResult.insertId;
-    }
-
-    const [result] = await db.query(
-      "INSERT INTO jokes (setup, punchline, type_id) VALUES (?, ?, ?)",
-      [setup.trim(), punchline.trim(), typeId]
-    );
-
-    res.status(201).json({
-      message: "Joke submitted successfully",
-      jokeId: result.insertId,
+    return res.status(202).json({
+      message: "Joke submitted to queue successfully",
+      queued: jokePayload
     });
-  } catch (err) {
-    console.error("Error submitting joke:", err);
-    res.status(500).json({ error: "Failed to submit joke" });
+  } catch (error) {
+    console.error("Submit error:", error);
+    return res.status(500).json({
+      error: "Failed to submit joke to queue"
+    });
   }
 });
 
