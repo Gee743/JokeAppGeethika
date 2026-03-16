@@ -1,0 +1,12 @@
+{
+  "name": "moderate-service",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "express": "^5.2.1"
+  }
+}

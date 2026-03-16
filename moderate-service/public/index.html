@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Moderate Joke</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; max-width: 700px; }
+    textarea, input, select, button { display: block; width: 100%; margin: 0.75rem 0; padding: 0.7rem; }
+    .row { display: flex; gap: 1rem; }
+    .row button { flex: 1; }
+    #status { margin: 1rem 0; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Moderator UI</h1>
+  <div id="status">Loading...</div>
+
+  <input type="hidden" id="token" />
+
+  <label>Setup</label>
+  <textarea id="setup" rows="3"></textarea>
+
+  <label>Punchline</label>
+  <textarea id="punchline" rows="3"></textarea>
+
+  <label>Type</label>
+  <select id="type"></select>
+
+  <div class="row">
+    <button id="approveBtn">Approve</button>
+    <button id="rejectBtn" type="button">Reject</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

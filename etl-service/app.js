@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://guest:guest@rabbitmq:5672";
-const QUEUE_NAME = process.env.QUEUE_NAME || "submit_jokes";
+const QUEUE_NAME = process.env.QUEUE_NAME || "moderated_jokes";
 
 app.get("/alive", (req, res) => {
   res.json({ status: "etl-service alive" });

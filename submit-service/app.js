@@ -2,7 +2,6 @@ const express = require("express");
 const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
-// const db = require("./db");
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JOKE_SERVICE_URL = process.env.JOKE_SERVICE_URL || "http://joke-service:3000";
